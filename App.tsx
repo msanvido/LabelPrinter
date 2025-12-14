@@ -13,16 +13,98 @@ import {
   Download,
   Trash2,
   FileDown,
-  FileText
+  FileText,
+  Grid
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import { Card } from './components/Card';
 import { Button } from './components/Button';
 import { parseRawInput } from './utils/csv';
-import { LabelRecord, TextAlign } from './types';
+import { LabelRecord, TextAlign, LabelLayout } from './types';
 
-// Avery 5160 constants
-const LABELS_PER_PAGE = 30;
+// --- Layout Definitions ---
+const LABEL_LAYOUTS: LabelLayout[] = [
+  {
+    id: '5160',
+    name: 'Avery 5160',
+    description: 'Address (1" x 2-5/8")',
+    pageWidth: 8.5,
+    pageHeight: 11,
+    marginTop: 0.5,
+    marginLeft: 0.21975,
+    colWidth: 2.625,
+    rowHeight: 1.0,
+    numCols: 3,
+    numRows: 10,
+    horizontalGap: 0.125,
+    verticalGap: 0,
+    paddingInternal: 0.125
+  },
+  {
+    id: '5161',
+    name: 'Avery 5161',
+    description: 'Address (1" x 4")',
+    pageWidth: 8.5,
+    pageHeight: 11,
+    marginTop: 0.5,
+    marginLeft: 0.156,
+    colWidth: 4,
+    rowHeight: 1.0,
+    numCols: 2,
+    numRows: 10,
+    horizontalGap: 0.188,
+    verticalGap: 0,
+    paddingInternal: 0.125
+  },
+  {
+    id: '5162',
+    name: 'Avery 5162',
+    description: 'Address (1-1/3" x 4")',
+    pageWidth: 8.5,
+    pageHeight: 11,
+    marginTop: 0.83,
+    marginLeft: 0.156,
+    colWidth: 4,
+    rowHeight: 1.33,
+    numCols: 2,
+    numRows: 7,
+    horizontalGap: 0.188,
+    verticalGap: 0,
+    paddingInternal: 0.125
+  },
+  {
+    id: '5163',
+    name: 'Avery 5163',
+    description: 'Shipping (2" x 4")',
+    pageWidth: 8.5,
+    pageHeight: 11,
+    marginTop: 0.5,
+    marginLeft: 0.156,
+    colWidth: 4,
+    rowHeight: 2.0,
+    numCols: 2,
+    numRows: 5,
+    horizontalGap: 0.188,
+    verticalGap: 0,
+    paddingInternal: 0.125
+  },
+  {
+    id: '5164',
+    name: 'Avery 5164',
+    description: 'Shipping (3-1/3" x 4")',
+    pageWidth: 8.5,
+    pageHeight: 11,
+    marginTop: 0.5,
+    marginLeft: 0.156,
+    colWidth: 4,
+    rowHeight: 3.33,
+    numCols: 2,
+    numRows: 3,
+    horizontalGap: 0.188,
+    verticalGap: 0,
+    paddingInternal: 0.125
+  }
+];
 
 const DEFAULT_CSV = `Name,Address,City,State,ZIP,Country
 "John Doe",123 Maple St,Springfield,IL,62704,USA
@@ -62,10 +144,11 @@ export default function App() {
   const [filterColumn, setFilterColumn] = useState<string>('');
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set());
 
-  // Template & Appearance
+  // Template & Appearance & Layout
   const [labelTemplate, setLabelTemplate] = useState<string>('');
   const [fontSize, setFontSize] = useState<number>(11);
   const [textAlign, setTextAlign] = useState<TextAlign>('left');
+  const [selectedLayout, setSelectedLayout] = useState<LabelLayout>(LABEL_LAYOUTS[0]);
 
   // --- Effects ---
 
@@ -163,28 +246,22 @@ export default function App() {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(fontSize);
 
-        // Avery 5160 Dimensions (Inches)
-        const MARGIN_TOP = 0.5;
-        const MARGIN_LEFT = 0.21975;
-        const COL_WIDTH = 2.625;
-        const ROW_HEIGHT = 1.0;
-        const HORIZ_GAP = 0.125;
-        const PADDING_INTERNAL = 0.125;
+        const labelsPerPage = selectedLayout.numRows * selectedLayout.numCols;
 
         processedData.forEach((record, index) => {
-           // Add new page every 30 labels
-           if (index > 0 && index % LABELS_PER_PAGE === 0) {
+           // Add new page every N labels
+           if (index > 0 && index % labelsPerPage === 0) {
               doc.addPage();
            }
 
            // Calculate grid position
-           const pageIndex = index % LABELS_PER_PAGE;
-           const col = pageIndex % 3;
-           const row = Math.floor(pageIndex / 3);
+           const pageIndex = index % labelsPerPage;
+           const col = pageIndex % selectedLayout.numCols;
+           const row = Math.floor(pageIndex / selectedLayout.numCols);
 
            // Calculate coordinates
-           const xStart = MARGIN_LEFT + (col * (COL_WIDTH + HORIZ_GAP));
-           const yStart = MARGIN_TOP + (row * ROW_HEIGHT);
+           const xStart = selectedLayout.marginLeft + (col * (selectedLayout.colWidth + selectedLayout.horizontalGap));
+           const yStart = selectedLayout.marginTop + (row * (selectedLayout.rowHeight + selectedLayout.verticalGap));
 
            // Parse Content
            const lines = labelTemplate.split('\n').map(line => 
@@ -192,15 +269,15 @@ export default function App() {
            );
 
            // Determine Text X Position based on Alignment
-           let xText = xStart + PADDING_INTERNAL;
+           let xText = xStart + selectedLayout.paddingInternal;
            if (textAlign === 'center') {
-              xText = xStart + (COL_WIDTH / 2);
+              xText = xStart + (selectedLayout.colWidth / 2);
            } else if (textAlign === 'right') {
-              xText = xStart + COL_WIDTH - PADDING_INTERNAL;
+              xText = xStart + selectedLayout.colWidth - selectedLayout.paddingInternal;
            }
 
            // Determine Text Y Position (Top Padding)
-           const yText = yStart + PADDING_INTERNAL;
+           const yText = yStart + selectedLayout.paddingInternal;
 
            // Render Text
            doc.text(lines, xText, yText, {
@@ -243,11 +320,12 @@ export default function App() {
 
   const chunkedData = useMemo(() => {
     const chunks = [];
-    for (let i = 0; i < processedData.length; i += LABELS_PER_PAGE) {
-      chunks.push(processedData.slice(i, i + LABELS_PER_PAGE));
+    const labelsPerPage = selectedLayout.numRows * selectedLayout.numCols;
+    for (let i = 0; i < processedData.length; i += labelsPerPage) {
+      chunks.push(processedData.slice(i, i + labelsPerPage));
     }
     return chunks;
-  }, [processedData]);
+  }, [processedData, selectedLayout]);
 
   const LabelContent: React.FC<{ record: LabelRecord }> = ({ record }) => {
     if (!record) return null;
@@ -276,26 +354,20 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
       
-      {/* Styles for Web Preview only */}
+      {/* Styles for Web Preview only - Dynamic Sheet Styling */}
       <style>{`
         .web-preview-sheet {
-          width: 8.5in;
-          height: 11in;
           background: white;
-          display: grid;
-          grid-template-columns: repeat(3, 2.625in);
-          grid-template-rows: repeat(10, 1in);
-          column-gap: 0.125in;
-          padding-top: 0.5in;
-          padding-left: 0.22in;
           box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
           margin-bottom: 2rem;
           transform-origin: top center;
+          /* Base Grid Props */
+          display: grid;
         }
         .web-preview-label {
           border: 1px dashed #e2e8f0;
           border-radius: 4px;
-          padding: 0.125in;
+          padding: ${selectedLayout.paddingInternal}in;
           overflow: hidden;
           transition: all 0.2s;
         }
@@ -315,7 +387,7 @@ export default function App() {
               </div>
               <div className="flex flex-col">
                 <span className="text-lg font-bold text-slate-900 tracking-tight">LabelPrinter Pro</span>
-                <span className="text-xs text-slate-500 font-medium">Avery 5160 PDF Generator</span>
+                <span className="text-xs text-slate-500 font-medium">Professional PDF Generator</span>
               </div>
             </div>
 
@@ -601,7 +673,28 @@ export default function App() {
                 </div>
 
                 <Card className="p-5 mb-8">
-                     <div className="grid grid-cols-2 gap-8">
+                     <div className="grid grid-cols-3 gap-8">
+                        <div>
+                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Label Type</label>
+                             <div className="relative">
+                                <select 
+                                    className="w-full pl-3 pr-10 py-2.5 border border-slate-300 rounded-lg text-sm appearance-none outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
+                                    value={selectedLayout.id}
+                                    onChange={(e) => {
+                                        const layout = LABEL_LAYOUTS.find(l => l.id === e.target.value);
+                                        if (layout) setSelectedLayout(layout);
+                                    }}
+                                >
+                                    {LABEL_LAYOUTS.map(l => (
+                                        <option key={l.id} value={l.id}>{l.name} - {l.description}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-500">
+                                    <Grid size={16} />
+                                </div>
+                             </div>
+                        </div>
+
                         <div>
                              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Font Size</label>
                              <div className="flex items-center gap-3 bg-slate-100 rounded-lg p-2 px-3">
@@ -654,7 +747,19 @@ export default function App() {
                         PAGE {pageIdx + 1}
                     </div>
                     
-                    <div className="web-preview-sheet">
+                    <div 
+                        className="web-preview-sheet"
+                        style={{
+                            width: `${selectedLayout.pageWidth}in`,
+                            height: `${selectedLayout.pageHeight}in`,
+                            gridTemplateColumns: `repeat(${selectedLayout.numCols}, ${selectedLayout.colWidth}in)`,
+                            gridTemplateRows: `repeat(${selectedLayout.numRows}, ${selectedLayout.rowHeight}in)`,
+                            columnGap: `${selectedLayout.horizontalGap}in`,
+                            rowGap: `${selectedLayout.verticalGap}in`,
+                            paddingTop: `${selectedLayout.marginTop}in`,
+                            paddingLeft: `${selectedLayout.marginLeft}in`
+                        }}
+                    >
                         {chunk.map((record, i) => (
                         <div key={i} className="web-preview-label">
                             <LabelContent record={record} />
