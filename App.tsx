@@ -121,7 +121,7 @@ const PRESETS = [
   },
   {
     name: "Europe",
-    template: "<Name>\n<Address>\n<ZIP> <City>, <State>\n<Country>"
+    template: "<Name>\n<Address>\n<ZIP> <City>\n<Country>"
   },
   {
     name: "Canada",
