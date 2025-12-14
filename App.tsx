@@ -390,7 +390,7 @@ export default function App() {
                 
                 <div className="flex-grow relative">
                     <textarea
-                        className="absolute inset-0 w-full h-full p-4 font-mono text-xs leading-relaxed outline-none resize-none focus:bg-blue-50/10 transition-colors"
+                        className="absolute inset-0 w-full h-full p-4 font-mono text-xs leading-relaxed outline-none resize-none bg-white text-slate-900 placeholder:text-slate-400"
                         placeholder={`Name,Address,City,State,ZIP\n"John Doe",123 Main St,Anytown,CA,90210...`}
                         value={rawData}
                         onChange={(e) => setRawData(e.target.value)}
@@ -593,7 +593,7 @@ export default function App() {
                              <textarea 
                                 value={labelTemplate}
                                 onChange={(e) => setLabelTemplate(e.target.value)}
-                                className="w-full h-full p-4 text-sm outline-none font-mono leading-relaxed resize-none"
+                                className="w-full h-full p-4 text-sm outline-none font-mono leading-relaxed resize-none bg-white text-slate-900 placeholder:text-slate-400"
                                 placeholder={`Enter text and variables...\n<Name>\n<Address>\n<City>, <State> <ZIP>`}
                             />
                         </div>
