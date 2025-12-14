@@ -514,40 +514,6 @@ export default function App() {
                 </div>
 
                 <div className="p-5 flex-grow flex flex-col gap-6">
-                    {/* Style Controls */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Font Size</label>
-                             <div className="flex items-center gap-3 bg-slate-100 rounded-lg p-1.5 px-3">
-                                <Type size={14} className="text-slate-400"/>
-                                <input 
-                                    type="range" 
-                                    min="8" 
-                                    max="16" 
-                                    step="0.5"
-                                    value={fontSize} 
-                                    onChange={(e) => setFontSize(parseFloat(e.target.value))}
-                                    className="flex-grow h-1.5 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                                />
-                                <span className="text-xs font-mono font-medium w-8 text-right">{fontSize}</span>
-                             </div>
-                        </div>
-                         <div>
-                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Alignment</label>
-                             <div className="flex bg-slate-100 rounded-lg p-1">
-                                {(['left', 'center', 'right'] as const).map(align => (
-                                    <button
-                                        key={align}
-                                        onClick={() => setTextAlign(align)}
-                                        className={`flex-1 capitalize text-xs py-1.5 rounded-md transition-all ${textAlign === align ? 'bg-white shadow text-blue-600 font-medium' : 'text-slate-500 hover:text-slate-700'}`}
-                                    >
-                                        {align}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Variable Tags */}
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Insert Variables</label>
@@ -611,15 +577,52 @@ export default function App() {
         {activeTab === 'preview' && (
           <div className="flex flex-col items-center">
             
-            <div className="w-full max-w-4xl mb-6 flex items-center justify-between">
-                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    <Check size={24} className="text-green-500" />
-                    Print Preview
-                 </h2>
-                 <div className="bg-yellow-50 text-yellow-800 text-sm px-4 py-2 rounded-lg border border-yellow-100 flex items-center gap-2 shadow-sm">
-                    <AlertCircle size={16} />
-                    <span>Important: When printing PDF, ensure scale is set to <strong>100%</strong> or <strong>"Actual Size"</strong>.</span>
-                 </div>
+            <div className="w-full max-w-4xl mb-6">
+                <div className="flex items-center justify-between mb-4">
+                     <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <Check size={24} className="text-green-500" />
+                        Print Preview
+                     </h2>
+                     <div className="bg-yellow-50 text-yellow-800 text-sm px-4 py-2 rounded-lg border border-yellow-100 flex items-center gap-2 shadow-sm">
+                        <AlertCircle size={16} />
+                        <span>Important: When printing PDF, ensure scale is set to <strong>100%</strong> or <strong>"Actual Size"</strong>.</span>
+                     </div>
+                </div>
+
+                <Card className="p-5 mb-8">
+                     <div className="grid grid-cols-2 gap-8">
+                        <div>
+                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Font Size</label>
+                             <div className="flex items-center gap-3 bg-slate-100 rounded-lg p-2 px-3">
+                                <Type size={16} className="text-slate-400"/>
+                                <input 
+                                    type="range" 
+                                    min="8" 
+                                    max="16" 
+                                    step="0.5"
+                                    value={fontSize} 
+                                    onChange={(e) => setFontSize(parseFloat(e.target.value))}
+                                    className="flex-grow h-1.5 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                />
+                                <span className="text-sm font-mono font-medium w-10 text-right">{fontSize}</span>
+                             </div>
+                        </div>
+                         <div>
+                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Alignment</label>
+                             <div className="flex bg-slate-100 rounded-lg p-1">
+                                {(['left', 'center', 'right'] as const).map(align => (
+                                    <button
+                                        key={align}
+                                        onClick={() => setTextAlign(align)}
+                                        className={`flex-1 capitalize text-sm py-2 rounded-md transition-all ${textAlign === align ? 'bg-white shadow text-blue-600 font-medium' : 'text-slate-500 hover:text-slate-700'}`}
+                                    >
+                                        {align}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </Card>
             </div>
 
             <div className="w-full overflow-auto flex flex-col items-center gap-10 pb-20">
