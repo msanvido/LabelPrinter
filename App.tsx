@@ -11,7 +11,6 @@ import {
   Filter, 
   X,
   ChevronRight,
-  Download,
   Trash2
 } from 'lucide-react';
 import { Card } from './components/Card';
@@ -22,7 +21,7 @@ import { LabelRecord, TextAlign } from './types';
 // Avery 5160 constants
 const LABELS_PER_PAGE = 30;
 
-const DEFAULT_CSV = `Name,Address,City,State,Zip,Country
+const DEFAULT_CSV = `Name,Address,City,State,ZIP,Country
 "John Doe",123 Maple St,Springfield,IL,62704,USA
 "Jane Smith",456 Oak Ave,Metropolis,NY,10012,USA
 "Bob Johnson",789 Pine Rd,Gotham,NJ,07001,USA
@@ -125,7 +124,12 @@ export default function App() {
 
   // --- Handlers ---
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    // Timeout ensures UI updates are processed before print dialog opens
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
 
   const insertTag = (tag: string) => {
     setLabelTemplate(prev => prev + `<${tag}>`);
@@ -182,11 +186,37 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20 app-container">
       
       {/* Dynamic Print Styles */}
       <style>{`
         @media print {
+          @page {
+            size: 8.5in 11in;
+            margin: 0;
+          }
+          
+          body {
+            margin: 0;
+            padding: 0;
+            background: white !important;
+          }
+
+          /* Hide everything in the app container by default */
+          .app-container > * {
+            display: none !important;
+          }
+
+          /* Show only the print area */
+          .app-container > .print-area {
+            display: block !important;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+          }
+
           /* Avery 5160 Layout */
           .label-sheet {
             display: grid;
@@ -201,17 +231,16 @@ export default function App() {
             box-sizing: border-box;
             page-break-after: always;
           }
+          
           .label-item {
             width: 2.625in;
             height: 1in;
             overflow: hidden;
             padding: 0.125in;
             box-sizing: border-box;
-            /* Debug border for alignment checks if needed, usually remove for final */
-            /* border: 1px dotted #ccc; */ 
           }
+          
           .no-print { display: none !important; }
-          .print-area { display: block !important; }
         }
         
         @media screen {
@@ -330,7 +359,7 @@ export default function App() {
                 <div className="flex-grow relative">
                     <textarea
                         className="absolute inset-0 w-full h-full p-4 font-mono text-xs leading-relaxed outline-none resize-none focus:bg-blue-50/10 transition-colors"
-                        placeholder={`Name,Address,City,State,Zip\n"John Doe",123 Main St,Anytown,CA,90210...`}
+                        placeholder={`Name,Address,City,State,ZIP\n"John Doe",123 Main St,Anytown,CA,90210...`}
                         value={rawData}
                         onChange={(e) => setRawData(e.target.value)}
                         spellCheck={false}
@@ -515,7 +544,7 @@ export default function App() {
                                 value={labelTemplate}
                                 onChange={(e) => setLabelTemplate(e.target.value)}
                                 className="w-full h-full p-4 text-sm outline-none font-mono leading-relaxed resize-none"
-                                placeholder={`Enter text and variables...\n<Name>\n<Address>\n<City>, <State> <Zip>`}
+                                placeholder={`Enter text and variables...\n<Name>\n<Address>\n<City>, <State> <ZIP>`}
                             />
                             <div className="absolute bottom-2 right-2 pointer-events-none opacity-50">
                                 <Layout size={64} className="text-slate-100" />
