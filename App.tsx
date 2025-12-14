@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Download,
   Trash2,
-  FileDown
+  FileDown,
+  FileText
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import { Card } from './components/Card';
@@ -23,13 +24,28 @@ import { LabelRecord, TextAlign } from './types';
 // Avery 5160 constants
 const LABELS_PER_PAGE = 30;
 
-const DEFAULT_CSV = `Name,Address,City,State,Zip,Country
+const DEFAULT_CSV = `Name,Address,City,State,ZIP,Country
 "John Doe",123 Maple St,Springfield,IL,62704,USA
 "Jane Smith",456 Oak Ave,Metropolis,NY,10012,USA
 "Bob Johnson",789 Pine Rd,Gotham,NJ,07001,USA
 "Alice Williams",321 Elm St,Smallville,KS,66002,USA
 "Charlie Brown",654 Cedar Ln,Peanuts,CA,90210,USA
 `;
+
+const PRESETS = [
+  {
+    name: "USA",
+    template: "<Name>\n<Address>\n<City>, <State> <ZIP>"
+  },
+  {
+    name: "Europe",
+    template: "<Name>\n<Address>\n<ZIP> <City>, <State>"
+  },
+  {
+    name: "Canada",
+    template: "<Name>\n<Address>\n<City> <State>\n<ZIP>\n<Country>"
+  }
+];
 
 export default function App() {
   // --- State ---
@@ -374,7 +390,7 @@ export default function App() {
                 <div className="flex-grow relative">
                     <textarea
                         className="absolute inset-0 w-full h-full p-4 font-mono text-xs leading-relaxed outline-none resize-none focus:bg-blue-50/10 transition-colors"
-                        placeholder={`Name,Address,City,State,Zip\n"John Doe",123 Main St,Anytown,CA,90210...`}
+                        placeholder={`Name,Address,City,State,ZIP\n"John Doe",123 Main St,Anytown,CA,90210...`}
                         value={rawData}
                         onChange={(e) => setRawData(e.target.value)}
                         spellCheck={false}
@@ -551,6 +567,24 @@ export default function App() {
                         )}
                     </div>
 
+                    {/* Quick Presets */}
+                    <div>
+                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Quick Templates</label>
+                         <div className="flex flex-wrap gap-2">
+                            {PRESETS.map(preset => (
+                                <button 
+                                    key={preset.name}
+                                    onClick={() => setLabelTemplate(preset.template)}
+                                    className="text-xs bg-white hover:bg-slate-50 text-slate-700 hover:text-blue-600 px-3 py-1.5 rounded-md border border-slate-200 transition-all shadow-sm flex items-center gap-2 group"
+                                    title="Replace current template"
+                                >
+                                    <FileText size={14} className="text-slate-400 group-hover:text-blue-500" />
+                                    <span className="font-medium">{preset.name}</span>
+                                </button>
+                            ))}
+                         </div>
+                    </div>
+
                     {/* Editor */}
                     <div className="flex-grow flex flex-col">
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Template Editor</label>
@@ -559,7 +593,7 @@ export default function App() {
                                 value={labelTemplate}
                                 onChange={(e) => setLabelTemplate(e.target.value)}
                                 className="w-full h-full p-4 text-sm outline-none font-mono leading-relaxed resize-none"
-                                placeholder={`Enter text and variables...\n<Name>\n<Address>\n<City>, <State> <Zip>`}
+                                placeholder={`Enter text and variables...\n<Name>\n<Address>\n<City>, <State> <ZIP>`}
                             />
                             <div className="absolute bottom-2 right-2 pointer-events-none opacity-50">
                                 <Layout size={64} className="text-slate-100" />
