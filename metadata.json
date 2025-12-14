@@ -1,0 +1,5 @@
+{
+  "name": "LabelPrinter Pro",
+  "description": "A professional tool for designing and printing Avery 5160 labels from CSV data with real-time preview and filtering.",
+  "requestFramePermissions": []
+}
