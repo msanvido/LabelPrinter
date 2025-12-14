@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Layout, 
   Type, 
@@ -54,6 +54,9 @@ export default function App() {
   const [headers, setHeaders] = useState<string[]>([]);
   const [parsedData, setParsedData] = useState<LabelRecord[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Refs
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
   
   // Filtering
   const [filterColumn, setFilterColumn] = useState<string>('');
@@ -222,10 +225,11 @@ export default function App() {
   };
 
   const clearData = () => {
-    if (window.confirm("Are you sure you want to clear all data?")) {
-        setRawData('');
-        setLabelTemplate('');
-    }
+    setRawData('');
+    // Focus the textarea after clearing so user can start typing/pasting immediately
+    setTimeout(() => {
+        textAreaRef.current?.focus();
+    }, 0);
   };
 
   const resetTemplate = () => {
@@ -382,7 +386,13 @@ export default function App() {
                      <span className="text-xs font-medium px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
                         {parsedData.length} records
                       </span>
-                     <Button variant="ghost" onClick={clearData} className="text-red-500 hover:text-red-600 hover:bg-red-50" title="Clear Data">
+                     <Button 
+                        variant="ghost" 
+                        onClick={clearData} 
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50" 
+                        title="Clear Data"
+                        disabled={!rawData}
+                     >
                         <Trash2 size={16} />
                      </Button>
                   </div>
@@ -390,6 +400,7 @@ export default function App() {
                 
                 <div className="flex-grow relative">
                     <textarea
+                        ref={textAreaRef}
                         className="absolute inset-0 w-full h-full p-4 font-mono text-xs leading-relaxed outline-none resize-none bg-white text-slate-900 placeholder:text-slate-400"
                         placeholder={`Name,Address,City,State,ZIP\n"John Doe",123 Main St,Anytown,CA,90210...`}
                         value={rawData}
