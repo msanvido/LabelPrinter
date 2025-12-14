@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Printer, 
   Layout, 
   Type, 
   Database, 
@@ -11,8 +10,11 @@ import {
   Filter, 
   X,
   ChevronRight,
-  Trash2
+  Download,
+  Trash2,
+  FileDown
 } from 'lucide-react';
+import { jsPDF } from "jspdf";
 import { Card } from './components/Card';
 import { Button } from './components/Button';
 import { parseRawInput } from './utils/csv';
@@ -21,7 +23,7 @@ import { LabelRecord, TextAlign } from './types';
 // Avery 5160 constants
 const LABELS_PER_PAGE = 30;
 
-const DEFAULT_CSV = `Name,Address,City,State,ZIP,Country
+const DEFAULT_CSV = `Name,Address,City,State,Zip,Country
 "John Doe",123 Maple St,Springfield,IL,62704,USA
 "Jane Smith",456 Oak Ave,Metropolis,NY,10012,USA
 "Bob Johnson",789 Pine Rd,Gotham,NJ,07001,USA
@@ -35,6 +37,7 @@ export default function App() {
   const [rawData, setRawData] = useState<string>('');
   const [headers, setHeaders] = useState<string[]>([]);
   const [parsedData, setParsedData] = useState<LabelRecord[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
   
   // Filtering
   const [filterColumn, setFilterColumn] = useState<string>('');
@@ -49,7 +52,6 @@ export default function App() {
 
   // Initialize with default data
   useEffect(() => {
-    // Only set default if rawData is truly empty on mount
     if (rawData === '') {
         setRawData(DEFAULT_CSV);
     }
@@ -122,12 +124,79 @@ export default function App() {
     });
   }, [parsedData, filterColumn, selectedFilters]);
 
-  // --- Handlers ---
+  // --- PDF Generation Handler ---
 
-  const handlePrint = () => {
-    // Timeout ensures UI updates are processed before print dialog opens
+  const handleDownloadPDF = () => {
+    setIsGenerating(true);
+    
+    // Allow UI to update before blocking with PDF generation
     setTimeout(() => {
-      window.print();
+      try {
+        // Initialize PDF - Letter size, Inches
+        const doc = new jsPDF({
+          orientation: 'portrait',
+          unit: 'in',
+          format: 'letter' // 8.5 x 11 inches
+        });
+
+        // Set Font
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(fontSize);
+
+        // Avery 5160 Dimensions (Inches)
+        const MARGIN_TOP = 0.5;
+        const MARGIN_LEFT = 0.21975;
+        const COL_WIDTH = 2.625;
+        const ROW_HEIGHT = 1.0;
+        const HORIZ_GAP = 0.125;
+        const PADDING_INTERNAL = 0.125;
+
+        processedData.forEach((record, index) => {
+           // Add new page every 30 labels
+           if (index > 0 && index % LABELS_PER_PAGE === 0) {
+              doc.addPage();
+           }
+
+           // Calculate grid position
+           const pageIndex = index % LABELS_PER_PAGE;
+           const col = pageIndex % 3;
+           const row = Math.floor(pageIndex / 3);
+
+           // Calculate coordinates
+           const xStart = MARGIN_LEFT + (col * (COL_WIDTH + HORIZ_GAP));
+           const yStart = MARGIN_TOP + (row * ROW_HEIGHT);
+
+           // Parse Content
+           const lines = labelTemplate.split('\n').map(line => 
+              line.replace(/<([^>]+)>/g, (_, key) => record[key] || '')
+           );
+
+           // Determine Text X Position based on Alignment
+           let xText = xStart + PADDING_INTERNAL;
+           if (textAlign === 'center') {
+              xText = xStart + (COL_WIDTH / 2);
+           } else if (textAlign === 'right') {
+              xText = xStart + COL_WIDTH - PADDING_INTERNAL;
+           }
+
+           // Determine Text Y Position (Top Padding)
+           const yText = yStart + PADDING_INTERNAL;
+
+           // Render Text
+           doc.text(lines, xText, yText, {
+              align: textAlign,
+              baseline: 'top',
+              lineHeightFactor: 1.15
+           });
+        });
+
+        doc.save("labels.pdf");
+      } catch (err) {
+        console.error("PDF Generation failed", err);
+        alert("Failed to generate PDF");
+      } finally {
+        setIsGenerating(false);
+      }
     }, 100);
   };
 
@@ -144,7 +213,6 @@ export default function App() {
 
   const resetTemplate = () => {
     setLabelTemplate('');
-    // Trigger re-generation by briefly toggling rawData logic or just let the effect handle empty template
     const current = rawData;
     setRawData(''); 
     setTimeout(() => setRawData(current), 10);
@@ -173,7 +241,6 @@ export default function App() {
             const content = line.replace(/<([^>]+)>/g, (match, key) => {
                 return record[key] !== undefined ? record[key] : match;
             });
-            // Preserve empty lines if explicitly typed
             if (line.length > 0 && content.trim() === '') return null;
             return (
                 <div key={lineIdx} className="whitespace-pre-wrap min-h-[1em]">
@@ -186,104 +253,48 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20 app-container">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
       
-      {/* Dynamic Print Styles */}
+      {/* Styles for Web Preview only */}
       <style>{`
-        @media print {
-          @page {
-            size: 8.5in 11in;
-            margin: 0;
-          }
-          
-          body {
-            margin: 0;
-            padding: 0;
-            background: white !important;
-          }
-
-          /* Hide everything in the app container by default */
-          .app-container > * {
-            display: none !important;
-          }
-
-          /* Show only the print area */
-          .app-container > .print-area {
-            display: block !important;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-          }
-
-          /* Avery 5160 Layout */
-          .label-sheet {
-            display: grid;
-            grid-template-columns: repeat(3, 2.625in);
-            grid-template-rows: repeat(10, 1in);
-            column-gap: 0.125in;
-            row-gap: 0in;
-            padding-top: 0.5in;
-            padding-left: 0.21975in;
-            width: 8.5in;
-            height: 11in;
-            box-sizing: border-box;
-            page-break-after: always;
-          }
-          
-          .label-item {
-            width: 2.625in;
-            height: 1in;
-            overflow: hidden;
-            padding: 0.125in;
-            box-sizing: border-box;
-          }
-          
-          .no-print { display: none !important; }
+        .web-preview-sheet {
+          width: 8.5in;
+          height: 11in;
+          background: white;
+          display: grid;
+          grid-template-columns: repeat(3, 2.625in);
+          grid-template-rows: repeat(10, 1in);
+          column-gap: 0.125in;
+          padding-top: 0.5in;
+          padding-left: 0.22in;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          margin-bottom: 2rem;
+          transform-origin: top center;
         }
-        
-        @media screen {
-          .print-area { display: none; }
-          .web-preview-sheet {
-            width: 8.5in;
-            height: 11in;
-            background: white;
-            display: grid;
-            grid-template-columns: repeat(3, 2.625in);
-            grid-template-rows: repeat(10, 1in);
-            column-gap: 0.125in;
-            padding-top: 0.5in;
-            padding-left: 0.22in;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            margin-bottom: 2rem;
-            transform-origin: top center;
-          }
-          .web-preview-label {
-            border: 1px dashed #e2e8f0;
-            border-radius: 4px;
-            padding: 0.125in;
-            overflow: hidden;
-            transition: all 0.2s;
-          }
-          .web-preview-label:hover {
-            border-color: #3b82f6;
-            background-color: #eff6ff;
-          }
+        .web-preview-label {
+          border: 1px dashed #e2e8f0;
+          border-radius: 4px;
+          padding: 0.125in;
+          overflow: hidden;
+          transition: all 0.2s;
+        }
+        .web-preview-label:hover {
+          border-color: #3b82f6;
+          background-color: #eff6ff;
         }
       `}</style>
 
       {/* --- Navigation Bar --- */}
-      <nav className="no-print bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+      <nav className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center gap-3">
               <div className="bg-blue-600 p-2 rounded-lg text-white shadow-sm">
-                <Printer size={24} />
+                <FileDown size={24} />
               </div>
               <div className="flex flex-col">
                 <span className="text-lg font-bold text-slate-900 tracking-tight">LabelPrinter Pro</span>
-                <span className="text-xs text-slate-500 font-medium">Avery 5160 Compatible</span>
+                <span className="text-xs text-slate-500 font-medium">Avery 5160 PDF Generator</span>
               </div>
             </div>
 
@@ -314,20 +325,24 @@ export default function App() {
               <div className="h-8 w-px bg-slate-200 mx-1"></div>
 
               <Button 
-                onClick={handlePrint} 
+                onClick={handleDownloadPDF} 
                 variant="primary" 
-                disabled={processedData.length === 0}
-                title="Print your labels"
+                disabled={processedData.length === 0 || isGenerating}
+                title="Generate and download PDF"
               >
-                <Printer size={18} />
-                Print {processedData.length} Labels
+                {isGenerating ? (
+                  <RefreshCw size={18} className="animate-spin" />
+                ) : (
+                  <Download size={18} />
+                )}
+                {isGenerating ? "Generating..." : "Download PDF"}
               </Button>
             </div>
           </div>
         </div>
       </nav>
 
-      <main className="no-print max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* === TAB 1: INPUT & DESIGN === */}
         {activeTab === 'input' && (
@@ -359,7 +374,7 @@ export default function App() {
                 <div className="flex-grow relative">
                     <textarea
                         className="absolute inset-0 w-full h-full p-4 font-mono text-xs leading-relaxed outline-none resize-none focus:bg-blue-50/10 transition-colors"
-                        placeholder={`Name,Address,City,State,ZIP\n"John Doe",123 Main St,Anytown,CA,90210...`}
+                        placeholder={`Name,Address,City,State,Zip\n"John Doe",123 Main St,Anytown,CA,90210...`}
                         value={rawData}
                         onChange={(e) => setRawData(e.target.value)}
                         spellCheck={false}
@@ -544,7 +559,7 @@ export default function App() {
                                 value={labelTemplate}
                                 onChange={(e) => setLabelTemplate(e.target.value)}
                                 className="w-full h-full p-4 text-sm outline-none font-mono leading-relaxed resize-none"
-                                placeholder={`Enter text and variables...\n<Name>\n<Address>\n<City>, <State> <ZIP>`}
+                                placeholder={`Enter text and variables...\n<Name>\n<Address>\n<City>, <State> <Zip>`}
                             />
                             <div className="absolute bottom-2 right-2 pointer-events-none opacity-50">
                                 <Layout size={64} className="text-slate-100" />
@@ -571,7 +586,7 @@ export default function App() {
                  </h2>
                  <div className="bg-yellow-50 text-yellow-800 text-sm px-4 py-2 rounded-lg border border-yellow-100 flex items-center gap-2 shadow-sm">
                     <AlertCircle size={16} />
-                    <span>Important: Set Printer Scale to <strong>100%</strong> or <strong>Default</strong> (not "Fit to Page")</span>
+                    <span>Important: When printing PDF, ensure scale is set to <strong>100%</strong> or <strong>"Actual Size"</strong>.</span>
                  </div>
             </div>
 
@@ -606,20 +621,6 @@ export default function App() {
           </div>
         )}
       </main>
-
-      {/* --- Print Output Area (Hidden on Screen) --- */}
-      <div className="print-area">
-        {chunkedData.map((chunk, pageIdx) => (
-          <div key={pageIdx} className="label-sheet">
-            {chunk.map((record, i) => (
-              <div key={i} className="label-item">
-                 <LabelContent record={record} />
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-
     </div>
   );
 }
