@@ -39,7 +39,7 @@ const PRESETS = [
   },
   {
     name: "Europe",
-    template: "<Name>\n<Address>\n<ZIP> <City>, <State>"
+    template: "<Name>\n<Address>\n<ZIP> <City>, <State>\n<Country>"
   },
   {
     name: "Canada",
@@ -104,7 +104,8 @@ export default function App() {
         }
         setLabelTemplate(defaultTemp);
     }
-  }, [rawData, labelTemplate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawData]);
 
   // --- Filtering Logic ---
 
@@ -369,7 +370,7 @@ export default function App() {
               
               {/* Data Entry Card */}
               <Card className="flex flex-col h-[500px]">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 bg-blue-100 rounded text-blue-600"><Database size={18} /></div>
                     <div>
@@ -396,7 +397,7 @@ export default function App() {
                         spellCheck={false}
                     />
                 </div>
-                <div className="p-2 border-t border-slate-100 bg-slate-50 text-[10px] text-slate-400 text-center uppercase font-semibold tracking-wider">
+                <div className="p-2 border-t border-slate-100 bg-white text-[10px] text-slate-400 text-center uppercase font-semibold tracking-wider">
                     First row must contain headers
                 </div>
               </Card>
@@ -499,7 +500,7 @@ export default function App() {
             {/* Right Column: Template Design */}
             <div className="xl:col-span-5 space-y-6">
                <Card className="h-full flex flex-col min-h-[500px]">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 bg-indigo-100 rounded text-indigo-600"><Layout size={18} /></div>
                     <div>
@@ -588,16 +589,13 @@ export default function App() {
                     {/* Editor */}
                     <div className="flex-grow flex flex-col">
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Template Editor</label>
-                        <div className="flex-grow relative rounded-lg border border-slate-300 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all overflow-hidden bg-white">
+                        <div className="flex-grow relative rounded-lg border border-slate-200 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all overflow-hidden bg-white">
                              <textarea 
                                 value={labelTemplate}
                                 onChange={(e) => setLabelTemplate(e.target.value)}
                                 className="w-full h-full p-4 text-sm outline-none font-mono leading-relaxed resize-none"
                                 placeholder={`Enter text and variables...\n<Name>\n<Address>\n<City>, <State> <ZIP>`}
                             />
-                            <div className="absolute bottom-2 right-2 pointer-events-none opacity-50">
-                                <Layout size={64} className="text-slate-100" />
-                            </div>
                         </div>
                         <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
                             <AlertCircle size={10} /> Variables must match column headers exactly.
